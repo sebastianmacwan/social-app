@@ -1,24 +1,27 @@
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail', // or your email service
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
 export async function sendOTP(email: string, otp: string, type: 'login' | 'forgot-password' = 'login') {
   try {
     const subject = type === 'login' ? 'Login OTP' : 'Password Reset OTP';
-    const text = `Your OTP is: ${otp}. It expires in 5 minutes.`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>${subject}</h2>
+        <p>Your OTP is: <strong>${otp}</strong></p>
+        <p>This OTP expires in 5 minutes.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      </div>
+    `;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const msg = {
       to: email,
+      from: 'sebastianmacwan95@gmail.com', // Your verified SendGrid sender
       subject,
-      text
-    });
+      html,
+    };
+
+    await sgMail.send(msg);
 
     console.log(`📧 ${type.toUpperCase()} OTP sent to ${email}`);
     return true;
@@ -30,12 +33,22 @@ export async function sendOTP(email: string, otp: string, type: 'login' | 'forgo
 
 export async function sendPasswordReset(email: string, newPassword: string) {
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Password Reset</h2>
+        <p>Your new password is: <strong>${newPassword}</strong></p>
+        <p>Please change it after logging in for security.</p>
+      </div>
+    `;
+
+    const msg = {
       to: email,
+      from: 'sebastianmacwan95@gmail.com',
       subject: 'Password Reset',
-      text: `Your new password is: ${newPassword}. Please change it after logging in.`
-    });
+      html,
+    };
+
+    await sgMail.send(msg);
 
     console.log(`📧 PASSWORD RESET sent to ${email}`);
     return true;
@@ -53,12 +66,23 @@ export async function sendInvoice(email: string, plan: string) {
       gold: 'Gold Plan - ₹1000/month - Unlimited posts'
     };
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Subscription Invoice</h2>
+        <p>Thank you for subscribing to the <strong>${planDetails[plan as keyof typeof planDetails] || plan}</strong> plan.</p>
+        <p>Your subscription is now active.</p>
+        <p>Enjoy posting!</p>
+      </div>
+    `;
+
+    const msg = {
       to: email,
+      from: 'sebastianmacwan95@gmail.com',
       subject: 'Subscription Invoice',
-      text: `Thank you for subscribing to the ${planDetails[plan as keyof typeof planDetails] || plan} plan. Your subscription is now active.`
-    });
+      html,
+    };
+
+    await sgMail.send(msg);
 
     console.log(`📧 INVOICE sent to ${email} for ${plan} plan`);
     return true;
