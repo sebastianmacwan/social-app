@@ -224,10 +224,18 @@ export async function POST(req: Request) {
       .insert(loginHistoryEntry);
 
     const res = NextResponse.json({ message: "Login successful" });
+    
+    // Get the host from request headers
+    const host = req.headers.get('host') || '';
+    const domain = host.startsWith('localhost') ? undefined : host.split(':')[0];
+    
     res.cookies.set("userId", userId, {
       httpOnly: true,
+      secure: true, // Required for HTTPS
       sameSite: "lax",
       path: "/",
+      domain: domain, // Set domain for Vercel
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
     return res;
