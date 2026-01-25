@@ -182,18 +182,25 @@ export async function POST(req: Request) {
       }
 
       // Verify OTP
-      const { data: otpRecord, error: otpCheckError } = await supabase
+      const { data: otpRecords, error: otpCheckError } = await supabase
         .from('OTP')
         .select('otp, expires_at')
         .eq('user_id', userId)
         .eq('type', 'login')
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-      if (otpCheckError || !otpRecord || otpRecord.otp !== otp.trim() || new Date() > new Date(otpRecord.expires_at)) {
+      if (otpCheckError || !otpRecords || otpRecords.length === 0) {
+        return NextResponse.json({ message: "No OTP found" }, { status: 401 });
+      }
+
+      const otpRecord = otpRecords[0];
+
+      if (otpRecord.otp !== otp.trim() || new Date() > new Date(otpRecord.expires_at)) {
         return NextResponse.json({ message: "Invalid or expired OTP" }, { status: 401 });
       }
 
-      // Delete the used OTP
+      // Delete all OTPs for this user and type
       await supabase
         .from('OTP')
         .delete()
