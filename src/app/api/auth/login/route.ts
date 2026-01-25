@@ -152,12 +152,20 @@ export async function POST(req: Request) {
         // Generate and send OTP
         const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // Store OTP in global store (like other OTP APIs)
-        globalThis.__loginOtpStore = {
-          otp: generatedOTP,
-          userId: userId,
-          expires: Date.now() + 5 * 60 * 1000, // 5 minutes
-        };
+        // Store OTP in database
+        const { error: otpError } = await supabase
+          .from('OTP')
+          .insert({
+            user_id: userId,
+            otp: generatedOTP,
+            type: 'login',
+            expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+          });
+
+        if (otpError) {
+          console.error("OTP store error:", otpError);
+          return NextResponse.json({ message: "Failed to store OTP" }, { status: 500 });
+        }
 
         // Send OTP via email
         try {
@@ -174,13 +182,23 @@ export async function POST(req: Request) {
       }
 
       // Verify OTP
-      const store = globalThis.__loginOtpStore;
-      if (!store || store.otp !== otp.trim() || Date.now() > store.expires || store.userId !== userId) {
+      const { data: otpRecord, error: otpCheckError } = await supabase
+        .from('OTP')
+        .select('otp, expires_at')
+        .eq('user_id', userId)
+        .eq('type', 'login')
+        .single();
+
+      if (otpCheckError || !otpRecord || otpRecord.otp !== otp.trim() || new Date() > new Date(otpRecord.expires_at)) {
         return NextResponse.json({ message: "Invalid or expired OTP" }, { status: 401 });
       }
 
-      // Clear the OTP store
-      delete globalThis.__loginOtpStore;
+      // Delete the used OTP
+      await supabase
+        .from('OTP')
+        .delete()
+        .eq('user_id', userId)
+        .eq('type', 'login');
     }
     // Microsoft browsers (Edge) don't require additional authentication
 
