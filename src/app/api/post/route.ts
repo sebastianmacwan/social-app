@@ -66,8 +66,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to create post" }, { status: 500 });
     }
 
-    // 4️⃣ Reward points - assuming addPoints is updated or removed since no points in schema
-    // await addPoints(userId, 5, "Created a post");
+    // 4️⃣ Reward points
+    try {
+      await addPoints(userId, 5, "Created a post");
+    } catch (pointsError) {
+      console.error("Failed to award points:", pointsError);
+    }
 
     return NextResponse.json(post, { status: 201 });
   } catch (error) {

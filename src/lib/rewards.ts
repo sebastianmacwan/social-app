@@ -10,7 +10,7 @@ export async function addPoints(
 
     // Get current user points
     const { data: user, error: fetchError } = await supabase
-      .from('users')
+      .from('User')
       .select('points')
       .eq('id', userId)
       .single();
@@ -34,7 +34,7 @@ export async function addPoints(
 
     // Update user points
     const { error: updateError } = await supabase
-      .from('users')
+      .from('User')
       .update({ points: newPoints })
       .eq('id', userId);
 
@@ -56,7 +56,7 @@ export async function addPoints(
 export async function getUserPoints(userId: string): Promise<number> {
   try {
     const { data: user, error } = await supabase
-      .from('users')
+      .from('User')
       .select('points')
       .eq('id', userId)
       .single();
