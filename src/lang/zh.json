@@ -1,0 +1,21 @@
+{
+  "nav": {
+    "feed": "Feed",
+    "friends": "Friends",
+    "rewards": "Rewards",
+    "profile": "Profile",
+    "subscriptions": "Subscriptions",
+    "pending": "Pending",
+    "sent": "Sent"
+  },
+  "feed": {
+    "title": "Post Feed",
+    "placeholder": "What’s on your mind?",
+    "post": "Post",
+    "noPosts": "No posts yet"
+  },
+  "friends": {
+    "title": "Friends",
+    "noFriends": "No friends found"
+  }
+}

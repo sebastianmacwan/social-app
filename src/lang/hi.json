@@ -1,0 +1,21 @@
+{
+  "nav": {
+    "feed": "फ़ीड",
+    "friends": "दोस्त",
+    "rewards": "इनाम",
+    "profile": "प्रोफ़ाइल",
+    "subscriptions": "सदस्यता",
+    "pending": "लंबित",
+    "sent": "भेजे गए"
+  },
+  "feed": {
+    "title": "पोस्ट फ़ीड",
+    "placeholder": "आप क्या सोच रहे हैं?",
+    "post": "पोस्ट करें",
+    "noPosts": "कोई पोस्ट नहीं"
+  },
+  "friends": {
+    "title": "दोस्त",
+    "noFriends": "कोई दोस्त नहीं मिला"
+  }
+}

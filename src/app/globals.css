@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* If you want to keep your custom body styles */
+@layer base {
+  body {
+    @apply antialiased bg-slate-50 text-slate-900;
+  }
+}
+
+
