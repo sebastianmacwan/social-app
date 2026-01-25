@@ -33,8 +33,8 @@ export async function POST(req: Request) {
     const { error } = await supabase
       .from("User")
       .update({
-        subscriptionPlan: plan,
-        subscriptionExpiresAt: expiresAt.toISOString(),
+        subscription_plan: plan,
+        subscription_expires_at: expiresAt.toISOString(),
       })
       .eq("id", userId);
 

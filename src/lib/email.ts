@@ -1,45 +1,69 @@
+import nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail', // or your email service
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
 export async function sendOTP(email: string, otp: string, type: 'login' | 'forgot-password' = 'login') {
-  // For development, just log the OTP
-  console.log(`📧 ${type.toUpperCase()} OTP sent to ${email}: ${otp}`);
+  try {
+    const subject = type === 'login' ? 'Login OTP' : 'Password Reset OTP';
+    const text = `Your OTP is: ${otp}. It expires in 5 minutes.`;
 
-  // TODO: Replace with actual email sending service
-  // Example with Nodemailer:
-  /*
-  const nodemailer = require('nodemailer');
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject,
+      text
+    });
 
-  const transporter = nodemailer.createTransporter({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: `${type === 'login' ? 'Login' : 'Password Reset'} OTP`,
-    text: `Your OTP is: ${otp}. It expires in 5 minutes.`
-  });
-  */
-
-  return true;
+    console.log(`📧 ${type.toUpperCase()} OTP sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Error sending OTP email:', error);
+    return false;
+  }
 }
 
 export async function sendPasswordReset(email: string, newPassword: string) {
-  // For development, just log the password
-  console.log(`📧 PASSWORD RESET sent to ${email}: ${newPassword}`);
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Password Reset',
+      text: `Your new password is: ${newPassword}. Please change it after logging in.`
+    });
 
-  // TODO: Replace with actual email sending service
-
-  return true;
+    console.log(`📧 PASSWORD RESET sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    return false;
+  }
 }
 
 export async function sendInvoice(email: string, plan: string) {
-  // For development, just log the invoice
-  console.log(`📧 INVOICE sent to ${email} for ${plan} plan`);
+  try {
+    const planDetails = {
+      bronze: 'Bronze Plan - ₹100/month - 5 posts/day',
+      silver: 'Silver Plan - ₹300/month - 10 posts/day',
+      gold: 'Gold Plan - ₹1000/month - Unlimited posts'
+    };
 
-  // TODO: Replace with actual email sending service
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Subscription Invoice',
+      text: `Thank you for subscribing to the ${planDetails[plan as keyof typeof planDetails] || plan} plan. Your subscription is now active.`
+    });
 
-  return true;
+    console.log(`📧 INVOICE sent to ${email} for ${plan} plan`);
+    return true;
+  } catch (error) {
+    console.error('Error sending invoice email:', error);
+    return false;
+  }
 }
