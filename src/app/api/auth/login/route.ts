@@ -159,7 +159,6 @@ export async function POST(req: Request) {
             user_id: userId,
             otp: generatedOTP,
             type: 'login',
-            lang: 'en',
             expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
           });
 
@@ -185,19 +184,25 @@ export async function POST(req: Request) {
       // Verify OTP
       const { data: otpRecords, error: otpCheckError } = await supabase
         .from('OTP')
-        .select('otp, expires_at, lang')
+        .select('otp, expires_at')
         .eq('user_id', userId)
         .eq('type', 'login')
         .order('created_at', { ascending: false })
         .limit(1);
 
+      console.log("OTP verification:", { userId, otp: otp.trim(), otpRecords, otpCheckError });
+
       if (otpCheckError || !otpRecords || otpRecords.length === 0) {
+        console.log("No OTP found");
         return NextResponse.json({ message: "No OTP found" }, { status: 401 });
       }
 
       const otpRecord = otpRecords[0];
 
+      console.log("OTP record:", otpRecord, "Current time:", new Date(), "Expires:", new Date(otpRecord.expires_at));
+
       if (otpRecord.otp !== otp.trim() || new Date() > new Date(otpRecord.expires_at)) {
+        console.log("OTP mismatch or expired");
         return NextResponse.json({ message: "Invalid or expired OTP" }, { status: 401 });
       }
 

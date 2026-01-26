@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { sendOTP } from "@/lib/email";
 
 export async function POST(req: Request) {
-  const { type, lang, email } = await req.json();
+  const body = await req.json();
+  console.log("OTP send body:", body);
+
+  const { type, lang, email } = body;
 
   if (!email) {
+    console.log("Email missing in body");
     return NextResponse.json({ success: false, message: "Email is required" }, { status: 400 });
   }
 
