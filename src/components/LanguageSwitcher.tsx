@@ -85,9 +85,22 @@ export default function LanguageSwitcher() {
   const handleChange = async (newLang: Lang) => {
     if (newLang === lang) return;
 
-    if (!user) {
-      alert("Please log in to change language");
-      return;
+    let currentUser = user;
+    if (!currentUser) {
+      try {
+        const res = await fetch("/api/auth/me");
+        const data = await res.json();
+        if (data && data.email) {
+          currentUser = data;
+          setUser(data);
+        } else {
+          alert("Please log in to change language");
+          return;
+        }
+      } catch (err) {
+        alert("Failed to fetch user data");
+        return;
+      }
     }
 
     // English → no verification
@@ -102,7 +115,7 @@ export default function LanguageSwitcher() {
     await fetch("/api/otp/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "email", lang: newLang, email: user.email }),
+      body: JSON.stringify({ type: "email", lang: newLang, email: currentUser.email }),
     });
     alert("OTP sent to your email");
   };
