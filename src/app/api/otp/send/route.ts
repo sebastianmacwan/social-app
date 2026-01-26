@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   };
 
   try {
-    await sendOTP(email, otp.toString(), type === 'email' ? 'login' : 'login', lang);
+    await sendOTP(email, otp.toString(), 'login', lang);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to send OTP:", error);

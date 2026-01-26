@@ -27,16 +27,29 @@
 //   );
 // }
 
-//21 jan working version with otp
 "use client";
 
 import { useLanguage } from "@/context/LanguageContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function LanguageSwitcher() {
   const { lang, setLang } = useLanguage();
   const [pendingLang, setPendingLang] = useState<Lang | null>(null);
   const [otp, setOtp] = useState("");
+  const [user, setUser] = useState<{ email: string; phone: string } | null>(null);
+
+  type Lang = "en" | "hi" | "fr" | "es" | "pt" | "zh";
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setUser(data.user);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch user:", err));
+  }, []);
 
 
   type Lang = "en" | "hi" | "fr" | "es" | "pt" | "zh";
@@ -72,33 +85,26 @@ export default function LanguageSwitcher() {
   const handleChange = async (newLang: Lang) => {
     if (newLang === lang) return;
 
+    if (!user) {
+      alert("Please log in to change language");
+      return;
+    }
+
     // English → no verification
     if (newLang === "en") {
       setLang(newLang);
       return;
     }
 
-    // Store requested language
+    // All other languages → Email OTP
     setPendingLang(newLang);
 
-    // French → Email OTP
-    if (newLang === "fr") {
-      await fetch("/api/otp/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "email", lang: newLang }),
-      });
-      alert("OTP sent to your email");
-      return;
-    }
-
-    // Other languages → Mobile OTP
     await fetch("/api/otp/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "mobile", lang: newLang }),
+      body: JSON.stringify({ type: "email", lang: newLang, email: user.email }),
     });
-    alert("OTP sent to your mobile number");
+    alert("OTP sent to your email");
   };
   const verifyOtp = async () => {
     if (!pendingLang) return;
