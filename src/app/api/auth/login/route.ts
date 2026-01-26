@@ -199,9 +199,9 @@ export async function POST(req: Request) {
 
       const otpRecord = otpRecords[0];
 
-      console.log("OTP record:", otpRecord, "Current time:", new Date(), "Expires:", new Date(otpRecord.expires_at));
+      console.log("OTP record:", otpRecord, "Current time:", new Date(), "Expires:", new Date(otpRecord.expires_at + 'Z'));
 
-      if (otpRecord.otp !== otp.trim() || new Date() > new Date(otpRecord.expires_at)) {
+      if (otpRecord.otp !== otp.trim() || new Date() > new Date(otpRecord.expires_at + 'Z')) {
         console.log("OTP mismatch or expired");
         return NextResponse.json({ message: "Invalid or expired OTP" }, { status: 401 });
       }
