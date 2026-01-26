@@ -159,6 +159,7 @@ export async function POST(req: Request) {
             user_id: userId,
             otp: generatedOTP,
             type: 'login',
+            lang: 'en',
             expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
           });
 
@@ -184,7 +185,7 @@ export async function POST(req: Request) {
       // Verify OTP
       const { data: otpRecords, error: otpCheckError } = await supabase
         .from('OTP')
-        .select('otp, expires_at')
+        .select('otp, expires_at, lang')
         .eq('user_id', userId)
         .eq('type', 'login')
         .order('created_at', { ascending: false })

@@ -90,19 +90,44 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get user's subscription
-    const { data: subscription, error: subError } = await supabase
-      .from('Subscription')
-      .select('plan, posts_per_day')
-      .eq('user_id', userId)
-      .single();
+    // Get friends count from Friend table
+    const { count: friendsCount, error: friendsError } = await supabase
+      .from('Friend')
+      .select('*', { count: 'exact', head: true })
+      .eq('userId', userId)
+      .eq('status', 'ACCEPTED');
 
-    let allowedPostsPerDay = 1; // default free plan
+    if (friendsError) {
+      console.error('Friends count error:', friendsError);
+      return NextResponse.json(
+        { error: "Failed to check friends" },
+        { status: 500 }
+      );
+    }
 
-    if (subError && subError.code !== 'PGRST116') { // PGRST116 is no rows
-      console.error('Subscription error:', subError);
-    } else if (subscription) {
-      allowedPostsPerDay = subscription.posts_per_day === -1 ? Infinity : subscription.posts_per_day;
+    const acceptedFriendsCount = friendsCount || 0;
+
+    // Also count reverse friendships (where user is the friendId)
+    const { count: reverseFriendsCount, error: reverseFriendsError } = await supabase
+      .from('Friend')
+      .select('*', { count: 'exact', head: true })
+      .eq('friend_id', userId)
+      .eq('status', 'ACCEPTED');
+
+    if (reverseFriendsError) {
+      console.error('Reverse friends count error:', reverseFriendsError);
+    }
+
+    const totalFriendsCount = acceptedFriendsCount + (reverseFriendsCount || 0);
+
+    // Calculate allowed posts per day based on friends
+    const allowedPostsPerDay = totalFriendsCount > 10 ? Infinity : totalFriendsCount;
+
+    if (allowedPostsPerDay === 0) {
+      return NextResponse.json(
+        { error: "Add at least one friend to post" },
+        { status: 403 }
+      );
     }
 
     // Check daily limit
