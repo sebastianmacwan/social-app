@@ -17,5 +17,12 @@
   "friends": {
     "title": "Friends",
     "noFriends": "No friends found"
+  },
+  "otp": {
+    "loginSubject": "OTP de Login",
+    "forgotSubject": "OTP de Redefinição de Senha",
+    "body": "Seu OTP é: <strong>{otp}</strong>",
+    "expires": "Este OTP expira em 5 minutos.",
+    "ignore": "Se você não solicitou isso, ignore este e-mail."
   }
 }

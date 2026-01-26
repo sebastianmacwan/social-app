@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import type Stripe from "stripe";
 import { getCurrentUserId } from "@/lib/auth";
 import supabase from "@/lib/prisma";
 import { sendInvoice } from "@/lib/email";
 
 const plans = {
-  bronze: { price: 100, name: "Bronze Plan" },
-  silver: { price: 300, name: "Silver Plan" },
-  gold: { price: 1000, name: "Gold Plan" },
+  free: { price: 0, name: "Free Plan", postsPerDay: 1 },
+  bronze: { price: 100, name: "Bronze Plan", postsPerDay: 5 },
+  silver: { price: 300, name: "Silver Plan", postsPerDay: 10 },
+  gold: { price: 1000, name: "Gold Plan", postsPerDay: -1 }, // unlimited
 };
 
 function isPaymentTimeAllowed(): boolean {
@@ -36,40 +36,52 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   }
 
-  const { price, name } = plans[plan as keyof typeof plans];
+  const { price, name, postsPerDay } = plans[plan as keyof typeof plans];
 
-  const Stripe = (await import("stripe")).default;
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  // Simulate payment processing
+  // In a real app, integrate with payment gateway
+  console.log(`Processing payment for ${name} - ₹${price}`);
 
-  try {
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "inr",
-            product_data: {
-              name,
-              description: `Subscription for ${name}`,
-            },
-            unit_amount: price * 100, // in paisa
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription?canceled=true`,
-      metadata: {
-        userId,
-        plan,
-      },
+  // Assume payment successful
+  const paymentSuccessful = true;
+
+  if (!paymentSuccessful) {
+    return NextResponse.json({ error: "Payment failed" }, { status: 500 });
+  }
+
+  // Get user email
+  const { data: user, error: userError } = await supabase
+    .from('User')
+    .select('email')
+    .eq('id', userId)
+    .single();
+
+  if (userError || !user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // Save subscription
+  const { error: subError } = await supabase
+    .from('Subscription')
+    .upsert({
+      user_id: userId,
+      plan,
+      posts_per_day: postsPerDay,
+      price,
+      created_at: new Date().toISOString(),
     });
 
-    return NextResponse.json({ url: session.url });
-  } catch (error) {
-    console.error("Stripe error:", error);
-    return NextResponse.json({ error: "Failed to create payment session" }, { status: 500 });
+  if (subError) {
+    console.error("Subscription save error:", subError);
+    return NextResponse.json({ error: "Failed to save subscription" }, { status: 500 });
   }
+
+  // Send invoice email
+  try {
+    await sendInvoice(user.email, plan);
+  } catch (error) {
+    console.error("Failed to send invoice:", error);
+  }
+
+  return NextResponse.json({ success: true, message: "Subscription activated" });
 }

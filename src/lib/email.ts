@@ -1,16 +1,18 @@
 import sgMail from '@sendgrid/mail';
+import { getDictionary } from './i18n/getDictionary';
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
-export async function sendOTP(email: string, otp: string, type: 'login' | 'forgot-password' = 'login') {
+export async function sendOTP(email: string, otp: string, type: 'login' | 'forgot-password' = 'login', lang: string = 'en') {
   try {
-    const subject = type === 'login' ? 'Login OTP' : 'Password Reset OTP';
+    const dict = getDictionary(lang);
+    const subject = type === 'login' ? dict.otp.loginSubject : dict.otp.forgotSubject;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>${subject}</h2>
-        <p>Your OTP is: <strong>${otp}</strong></p>
-        <p>This OTP expires in 5 minutes.</p>
-        <p>If you didn't request this, please ignore this email.</p>
+        <p>${dict.otp.body.replace('{otp}', otp)}</p>
+        <p>${dict.otp.expires}</p>
+        <p>${dict.otp.ignore}</p>
       </div>
     `;
 
@@ -23,7 +25,7 @@ export async function sendOTP(email: string, otp: string, type: 'login' | 'forgo
 
     await sgMail.send(msg);
 
-    console.log(`📧 ${type.toUpperCase()} OTP sent to ${email}`);
+    console.log(`📧 ${type.toUpperCase()} OTP sent to ${email} in ${lang}`);
     return true;
   } catch (error) {
     console.error('Error sending OTP email:', error);
@@ -61,6 +63,7 @@ export async function sendPasswordReset(email: string, newPassword: string) {
 export async function sendInvoice(email: string, plan: string) {
   try {
     const planDetails = {
+      free: 'Free Plan - ₹0/month - 1 post/day',
       bronze: 'Bronze Plan - ₹100/month - 5 posts/day',
       silver: 'Silver Plan - ₹300/month - 10 posts/day',
       gold: 'Gold Plan - ₹1000/month - Unlimited posts'

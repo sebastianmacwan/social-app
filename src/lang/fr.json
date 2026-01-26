@@ -17,5 +17,12 @@
   "friends": {
     "title": "Friends",
     "noFriends": "No friends found"
+  },
+  "otp": {
+    "loginSubject": "OTP de Connexion",
+    "forgotSubject": "OTP de Réinitialisation du Mot de Passe",
+    "body": "Votre OTP est : <strong>{otp}</strong>",
+    "expires": "Cet OTP expire dans 5 minutes.",
+    "ignore": "Si vous n'avez pas demandé cela, veuillez ignorer cet e-mail."
   }
 }

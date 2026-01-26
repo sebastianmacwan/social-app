@@ -19,5 +19,12 @@
   "friends": {
     "title": "Friends",
     "noFriends": "No friends found"
+  },
+  "otp": {
+    "loginSubject": "Login OTP",
+    "forgotSubject": "Password Reset OTP",
+    "body": "Your OTP is: <strong>{otp}</strong>",
+    "expires": "This OTP expires in 5 minutes.",
+    "ignore": "If you didn't request this, please ignore this email."
   }
 }

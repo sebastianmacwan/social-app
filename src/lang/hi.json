@@ -17,5 +17,12 @@
   "friends": {
     "title": "दोस्त",
     "noFriends": "कोई दोस्त नहीं मिला"
+  },
+  "otp": {
+    "loginSubject": "लॉगिन OTP",
+    "forgotSubject": "पासवर्ड रीसेट OTP",
+    "body": "आपका OTP है: <strong>{otp}</strong>",
+    "expires": "यह OTP 5 मिनट में समाप्त हो जाएगा।",
+    "ignore": "यदि आपने यह अनुरोध नहीं किया है, तो कृपया इस ईमेल को अनदेखा करें।"
   }
 }

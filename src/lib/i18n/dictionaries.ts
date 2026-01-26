@@ -28,6 +28,13 @@ export const dictionaries = {
       pending: "Pending",
       sent: "Sent",
     },
+    otp: {
+      loginSubject: "Login OTP",
+      forgotSubject: "Password Reset OTP",
+      body: "Your OTP is: <strong>{otp}</strong>",
+      expires: "This OTP expires in 5 minutes.",
+      ignore: "If you didn't request this, please ignore this email."
+    },
   },
 
   hi: {
@@ -60,6 +67,13 @@ export const dictionaries = {
       pending: "लंबित",
       sent: "भेजा गया",
     },
+    otp: {
+      loginSubject: "लॉगिन OTP",
+      forgotSubject: "पासवर्ड रीसेट OTP",
+      body: "आपका OTP है: <strong>{otp}</strong>",
+      expires: "यह OTP 5 मिनट में समाप्त हो जाएगा।",
+      ignore: "यदि आपने यह अनुरोध नहीं किया है, तो कृपया इस ईमेल को अनदेखा करें।"
+    },
   },
   fr: {
     common: {
@@ -89,6 +103,13 @@ export const dictionaries = {
       subscriptions: "Abonnements",
       pending: "En attente",
       sent: "Envoyé",
+    },
+    otp: {
+      loginSubject: "OTP de Connexion",
+      forgotSubject: "OTP de Réinitialisation du Mot de Passe",
+      body: "Votre OTP est : <strong>{otp}</strong>",
+      expires: "Cet OTP expire dans 5 minutes.",
+      ignore: "Si vous n'avez pas demandé cela, veuillez ignorer cet e-mail."
     },
   },
   es: {
@@ -120,6 +141,13 @@ export const dictionaries = {
       pending: "Pendiente",
       sent: "Enviado",
     },
+    otp: {
+      loginSubject: "OTP de Inicio de Sesión",
+      forgotSubject: "OTP de Restablecimiento de Contraseña",
+      body: "Su OTP es: <strong>{otp}</strong>",
+      expires: "Este OTP expira en 5 minutos.",
+      ignore: "Si no solicitó esto, ignore este correo electrónico."
+    },
   },
   pt: {
     common: {
@@ -150,6 +178,13 @@ export const dictionaries = {
       pending: "Pendente",
       sent: "Enviado",
     },
+    otp: {
+      loginSubject: "OTP de Login",
+      forgotSubject: "OTP de Redefinição de Senha",
+      body: "Seu OTP é: <strong>{otp}</strong>",
+      expires: "Este OTP expira em 5 minutos.",
+      ignore: "Se você não solicitou isso, ignore este e-mail."
+    },
   },  
   zh: {
     common: {
@@ -179,6 +214,13 @@ export const dictionaries = {
       subscriptions: "订阅",
       pending: "待处理",
       sent: "已发送",
+    },
+    otp: {
+      loginSubject: "登录 OTP",
+      forgotSubject: "密码重置 OTP",
+      body: "您的 OTP 是：<strong>{otp}</strong>",
+      expires: "此 OTP 在 5 分钟后过期。",
+      ignore: "如果您没有请求此操作，请忽略此电子邮件。"
     },
   },  
 

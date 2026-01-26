@@ -17,5 +17,12 @@
   "friends": {
     "title": "Friends",
     "noFriends": "No friends found"
+  },
+  "otp": {
+    "loginSubject": "登录 OTP",
+    "forgotSubject": "密码重置 OTP",
+    "body": "您的 OTP 是：<strong>{otp}</strong>",
+    "expires": "此 OTP 在 5 分钟后过期。",
+    "ignore": "如果您没有请求此操作，请忽略此电子邮件。"
   }
 }

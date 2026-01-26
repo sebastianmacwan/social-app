@@ -12,7 +12,37 @@ export default function PostForm({
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState<"image" | "video" | "">("");
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const { t } = useLanguage();
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setMediaUrl(data.url);
+        setMediaType(data.type);
+      } else {
+        alert("Upload failed");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -77,6 +107,18 @@ export default function PostForm({
       className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black"
       rows={3}
     />
+
+    {/* FILE UPLOAD */}
+    <div>
+      <input
+        type="file"
+        accept="image/*,video/*"
+        onChange={handleFileUpload}
+        disabled={uploading}
+        className="w-full border rounded-lg px-3 py-2 text-sm"
+      />
+      {uploading && <p>Uploading...</p>}
+    </div>
 
     {/* MEDIA URL */}
     <input
