@@ -3,10 +3,14 @@ import { getDictionary } from './i18n/getDictionary';
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
-export async function sendOTP(email: string, otp: string, type: 'login' | 'forgot-password' = 'login', lang: string = 'en') {
+export async function sendOTP(email: string, otp: string, type: 'login' | 'forgot-password' | 'language_switch' = 'login', lang: string = 'en') {
   try {
     const dict = getDictionary(lang);
-    const subject = type === 'login' ? dict.otp.loginSubject : dict.otp.forgotSubject;
+    let subject = "";
+    if (type === 'login') subject = dict.otp.loginSubject;
+    else if (type === 'forgot-password') subject = dict.otp.forgotSubject;
+    else if (type === 'language_switch') subject = "Language Change Verification";
+    else subject = "Verification Code";
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>${subject}</h2>

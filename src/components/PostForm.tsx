@@ -64,7 +64,7 @@ export default function PostForm({
     });
 
 
-    let data = null;
+    let data: any = null;
     try {
       data = await res.json();
     } catch {

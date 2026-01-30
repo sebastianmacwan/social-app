@@ -1,11 +1,10 @@
 "use client";
 
-import { createContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-
-export const AuthContext = createContext<any>(null);
+import { AuthContext } from "@/context/AuthContext";
 
 const cssStyles = `
   body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f9fafb; color: #1f2937; -webkit-font-smoothing: antialiased; }

@@ -17,22 +17,22 @@ export async function POST(
 
     // Check if comment exists - trying different table names
     const tryFetchComment = async (tableName: string) => {
-      let { data, error } = await supabase
+      let result: any;
+      
+      result = await supabase
         .from(tableName)
         .select("id, user_id")
         .eq("id", commentId)
         .single();
       
-      if (error && (error.code === '42703' || error.message?.includes('user_id'))) {
-        const { data: altData, error: altError } = await supabase
+      if (result.error && (result.error.code === '42703' || result.error.message?.includes('user_id'))) {
+        result = await supabase
           .from(tableName)
           .select("id, authorId")
           .eq("id", commentId)
           .single();
-        data = altData;
-        error = altError;
       }
-      return { data, error };
+      return { data: result.data, error: result.error };
     };
 
     let { data: comment, error: commentError } = await tryFetchComment("Comment");
@@ -61,8 +61,10 @@ export async function POST(
 
     // Check if already liked - trying different junction table names
     const tryFetchLike = async (tableName: string) => {
+      let result: any;
+
       // Try snake_case columns
-      let { data, error } = await supabase
+      result = await supabase
         .from(tableName)
         .select("id")
         .eq("comment_id", commentId)
@@ -70,17 +72,15 @@ export async function POST(
         .maybeSingle();
       
       // Try camelCase if undefined column
-      if (error && error.code === '42703') {
-        const { data: altData, error: altError } = await supabase
+      if (result.error && result.error.code === '42703') {
+        result = await supabase
           .from(tableName)
           .select("id")
           .eq("commentId", commentId)
           .eq("userId", userId)
           .maybeSingle();
-        data = altData;
-        error = altError;
       }
-      return { data, error };
+      return { data: result.data, error: result.error };
     };
 
     let { data: existingLike, error: likeError } = await tryFetchLike("CommentLike");
