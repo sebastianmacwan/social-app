@@ -11,24 +11,21 @@ export async function GET(req: Request) {
     let postsError = null;
 
     const tryFetchPosts = async (tableName: string, userJoin: string) => {
+      // Use any to avoid Supabase's complex template literal type inference which causes build errors
+      let result: any;
+      
       // First try with created_at
-      let result = await supabase
+      result = await supabase
         .from(tableName)
-        .select(`
-          id, content, created_at, media_url, media_type, user_id,
-          ${userJoin} (id, name, email)
-        `)
+        .select(`id, content, created_at, media_url, media_type, user_id, ${userJoin}(id, name, email)`)
         .order('created_at', { ascending: false });
 
       // If created_at fails, try with createdAt
       if (result.error && (result.error.code === '42703' || result.error.message?.includes('created_at'))) {
         result = await supabase
           .from(tableName)
-          .select(`
-            id, content, "createdAt", media_url, media_type, user_id,
-            ${userJoin} (id, name, email)
-          `)
-          .order('createdAt', { ascending: false }) as any;
+          .select(`id, content, "createdAt", media_url, media_type, user_id, ${userJoin}(id, name, email)`)
+          .order('createdAt', { ascending: false });
       }
 
       return { data: result.data, error: result.error };
@@ -73,18 +70,21 @@ export async function GET(req: Request) {
 
     // Try 'Comment' with 'created_at'
     const tryFetchComments = async (tableName: string, userJoin: string) => {
+      // Use any to avoid complex type inference
+      let result: any;
+
       // First try with created_at
-      let result = await supabase
+      result = await supabase
         .from(tableName)
-        .select(`id, content, created_at, post_id, user_id, ${userJoin} (name)`)
+        .select(`id, content, created_at, post_id, user_id, ${userJoin}(name)`)
         .in('post_id', postIds);
 
       // If created_at fails, try with createdAt
       if (result.error && (result.error.code === '42703' || result.error.message?.includes('created_at'))) {
         result = await supabase
           .from(tableName)
-          .select(`id, content, "createdAt", post_id, user_id, ${userJoin} (name)`)
-          .in('post_id', postIds) as any;
+          .select(`id, content, "createdAt", post_id, user_id, ${userJoin}(name)`)
+          .in('post_id', postIds);
       }
 
       return { data: result.data, error: result.error };
