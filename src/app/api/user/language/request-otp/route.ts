@@ -46,8 +46,12 @@ export async function POST(req: Request) {
 
     if (targetLanguage === 'fr') {
       // Send Email OTP
-      await sendOTP(user.email, generatedOTP, 'language_switch');
-      return NextResponse.json({ message: "OTP sent to email" });
+      const sent = await sendOTP(user.email, generatedOTP, 'language_switch');
+      console.log(`Email OTP attempted to ${user.email}. Success: ${sent}`);
+      if (!sent) {
+        return NextResponse.json({ error: "Failed to send email OTP. Please check if SENDGRID_API_KEY is correctly set in Vercel environment variables." }, { status: 500 });
+      }
+      return NextResponse.json({ message: "OTP sent to email: " + user.email });
     } else {
       // Send Mobile OTP
       if (!user.phone) {
