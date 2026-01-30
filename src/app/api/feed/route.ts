@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
     const tryFetchPosts = async (tableName: string, userJoin: string) => {
       // First try with created_at
-      let { data, error } = await supabase
+      let result = await supabase
         .from(tableName)
         .select(`
           id, content, created_at, media_url, media_type, user_id,
@@ -21,19 +21,17 @@ export async function GET(req: Request) {
         .order('created_at', { ascending: false });
 
       // If created_at fails, try with createdAt
-      if (error && (error.code === '42703' || error.message?.includes('created_at'))) {
-        const { data: altData, error: altError } = await supabase
+      if (result.error && (result.error.code === '42703' || result.error.message?.includes('created_at'))) {
+        result = await supabase
           .from(tableName)
           .select(`
             id, content, "createdAt", media_url, media_type, user_id,
             ${userJoin} (id, name, email)
           `)
-          .order('createdAt', { ascending: false });
-        data = altData;
-        error = altError;
+          .order('createdAt', { ascending: false }) as any;
       }
 
-      return { data, error };
+      return { data: result.data, error: result.error };
     };
 
     const { data: p1, error: pe1 } = await tryFetchPosts('Post', 'User!user_id');
@@ -76,22 +74,20 @@ export async function GET(req: Request) {
     // Try 'Comment' with 'created_at'
     const tryFetchComments = async (tableName: string, userJoin: string) => {
       // First try with created_at
-      let { data, error } = await supabase
+      let result = await supabase
         .from(tableName)
         .select(`id, content, created_at, post_id, user_id, ${userJoin} (name)`)
         .in('post_id', postIds);
 
       // If created_at fails, try with createdAt
-      if (error && (error.code === '42703' || error.message?.includes('created_at'))) {
-        const { data: altData, error: altError } = await supabase
+      if (result.error && (result.error.code === '42703' || result.error.message?.includes('created_at'))) {
+        result = await supabase
           .from(tableName)
           .select(`id, content, "createdAt", post_id, user_id, ${userJoin} (name)`)
-          .in('post_id', postIds);
-        data = altData;
-        error = altError;
+          .in('post_id', postIds) as any;
       }
 
-      return { data, error };
+      return { data: result.data, error: result.error };
     };
 
     // Try sequence: Comment, comment, comments
