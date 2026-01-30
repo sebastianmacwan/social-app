@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { headers } from "next/headers";
-import supabase from "@/lib/prisma";
+import { supabase } from "@/lib/supabaseClient";
 import { sendInvoice } from "@/lib/email";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;

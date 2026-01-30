@@ -10,6 +10,7 @@ export default function PostCard({ post, onDelete, onLike }: any) {
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState(post.comments || []);
   const [commentLoading, setCommentLoading] = useState(false);
+  const [commentError, setCommentError] = useState("");
   const [liked, setLiked] = useState<boolean>(post.likedByMe);
   const [likesCount, setLikesCount] = useState<number>(post.likesCount);
 
@@ -49,24 +50,30 @@ export default function PostCard({ post, onDelete, onLike }: any) {
 
   /* ================= SHARE ================= */
   const handleShare = async () => {
-    const url = window.location.href;
-
-    if (navigator.share) {
-      await navigator.share({
-        title: "Public Social Space",
-        text: post.content,
-        url,
-      });
-    } else {
-      await navigator.clipboard.writeText(url);
-      alert("Post link copied to clipboard");
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Check out this post",
+          text: post.content || "",
+          url: window.location.href,
+        });
+      } else {
+        // Fallback: Copy to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        alert("Link copied to clipboard!");
+      }
+    } catch (err) {
+      console.error("Error sharing:", err);
     }
   };
+
+  const formattedDate = new Date(post.createdAt || post.created_at).toLocaleDateString();
 
   /* ================= COMMENT ================= */
   const handleComment = async () => {
     if (!comment.trim() || commentLoading) return;
     setCommentLoading(true);
+    setCommentError("");
 
     const res = await fetch(`/api/post/${post.id}/comment`, {
       method: "POST",
@@ -78,6 +85,9 @@ export default function PostCard({ post, onDelete, onLike }: any) {
       const newComment = await res.json();
       setComments((prev: any[]) => [newComment, ...prev]);
       setComment("");
+    } else {
+      const data = await res.json();
+      setCommentError(data.error || "Failed to add comment");
     }
 
     setCommentLoading(false);
@@ -158,6 +168,10 @@ export default function PostCard({ post, onDelete, onLike }: any) {
             Comment
           </button>
         </div>
+
+        {commentError && (
+          <p className="text-xs text-red-500">{commentError}</p>
+        )}
 
         {comments.length === 0 && (
           <p className="text-xs text-gray-400">No comments yet</p>

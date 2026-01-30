@@ -1,4 +1,4 @@
-import supabase from "@/lib/prisma";
+import { supabase } from "@/lib/supabaseClient";
 
 export async function addPoints(
   userId: string,
@@ -8,21 +8,13 @@ export async function addPoints(
   try {
     console.log(`REWARDS: Adding ${amount} points to user ${userId} for: ${reason}`);
 
-    // Get current user points
     const { data: user, error: fetchError } = await supabase
       .from('User')
       .select('points')
       .eq('id', userId)
       .single();
 
-    console.log('REWARDS: User fetch result:', { user, fetchError });
-
-    if (fetchError) {
-      console.error('REWARDS: Error fetching user or points column may not exist:', fetchError);
-      return; // Don't fail if points system not set up
-    }
-
-    if (!user) {
+    if (fetchError || !user) {
       console.error('REWARDS: User not found for points update:', userId);
       return;
     }
@@ -30,23 +22,16 @@ export async function addPoints(
     const currentPoints = user.points || 0;
     const newPoints = Math.max(0, currentPoints + amount);
 
-    console.log(`REWARDS: Updating points from ${currentPoints} to ${newPoints}`);
-
-    // Update user points
     const { error: updateError } = await supabase
       .from('User')
       .update({ points: newPoints })
       .eq('id', userId);
 
-    console.log('REWARDS: Update result:', { updateError });
-
     if (updateError) {
-      console.error('REWARDS: Failed to update points:', updateError);
-      return;
+      console.error('Error updating points:', updateError);
+    } else {
+      console.log(`REWARDS: Points ${amount > 0 ? 'added' : 'deducted'}: ${amount} to user ${userId} for: ${reason}. New balance: ${newPoints}`);
     }
-
-    // Log the transaction (you might want to create a points_transaction table)
-    console.log(`REWARDS: Points ${amount > 0 ? 'added' : 'deducted'}: ${amount} to user ${userId} for: ${reason}`);
 
   } catch (error) {
     console.error('Error updating points:', error);
@@ -61,11 +46,12 @@ export async function getUserPoints(userId: string): Promise<number> {
       .eq('id', userId)
       .single();
 
-    if (error || !user) {
+    if (error) {
+      console.error('Error getting user points:', error);
       return 0;
     }
 
-    return user.points || 0;
+    return user?.points || 0;
   } catch (error) {
     console.error('Error getting user points:', error);
     return 0;
@@ -78,20 +64,34 @@ export async function transferPoints(
   amount: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    if (amount <= 0) {
+      return { success: false, error: 'Amount must be positive' };
+    }
+
     // Check sender's points
-    const senderPoints = await getUserPoints(fromUserId);
+    const { data: sender, error: senderError } = await supabase
+      .from('User')
+      .select('points')
+      .eq('id', fromUserId)
+      .single();
+
+    if (senderError || !sender) return { success: false, error: 'Sender not found' };
+
+    const senderPoints = sender.points || 0;
+
+    // "user can transefer points... only if they have more than 10 points"
+    if (senderPoints <= 10) {
+      return { success: false, error: 'You need more than 10 points to transfer' };
+    }
+
     if (senderPoints < amount) {
       return { success: false, error: 'Insufficient points' };
     }
 
-    if (senderPoints < 10) {
-      return { success: false, error: 'You need at least 10 points to transfer' };
-    }
-
-    // Check if recipient exists
+    // Check recipient
     const { data: recipient, error: recipientError } = await supabase
-      .from('users')
-      .select('id')
+      .from('User')
+      .select('id') // Just check existence
       .eq('id', toUserId)
       .single();
 
@@ -100,33 +100,39 @@ export async function transferPoints(
     }
 
     // Perform transfer
-    const { error: updateSenderError } = await supabase
-      .from('users')
+    const { error: deductError } = await supabase
+      .from('User')
       .update({ points: senderPoints - amount })
       .eq('id', fromUserId);
 
-    if (updateSenderError) {
-      return { success: false, error: 'Failed to deduct points from sender' };
-    }
+    if (deductError) return { success: false, error: 'Failed to deduct points' };
 
-    const recipientPoints = await getUserPoints(toUserId);
-    const { error: updateRecipientError } = await supabase
-      .from('users')
-      .update({ points: recipientPoints + amount })
+    // Get recipient's current points
+    const { data: recipientData } = await supabase
+      .from('User')
+      .select('points')
+      .eq('id', toUserId)
+      .single();
+
+    const { error: addError } = await supabase
+      .from('User')
+      .update({ points: (recipientData?.points || 0) + amount })
       .eq('id', toUserId);
 
-    if (updateRecipientError) {
-      // Rollback sender's points
+    if (addError) {
+      // Rollback deduction (basic)
       await supabase
-        .from('users')
+        .from('User')
         .update({ points: senderPoints })
         .eq('id', fromUserId);
       return { success: false, error: 'Failed to add points to recipient' };
     }
 
+    console.log(`REWARDS: Transferred ${amount} points from ${fromUserId} to ${toUserId}`);
     return { success: true };
+
   } catch (error) {
     console.error('Error transferring points:', error);
-    return { success: false, error: 'Transfer failed' };
+    return { success: false, error: 'Internal server error' };
   }
 }

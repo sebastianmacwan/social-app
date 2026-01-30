@@ -1,86 +1,10 @@
-// import { NextResponse } from "next/server";
-// import prisma from "@/lib/prisma";
-// import { getCurrentUserId } from "@/lib/auth";
-
-// export async function POST(req: Request) {
-//   try {
-//     const body = await req.json();
-
-//     // ✅ FIX: await is REQUIRED
-//     const userId = await getCurrentUserId();
-
-//     // 🔐 AUTH GUARD
-//     if (!userId) {
-//       return NextResponse.json(
-//         { error: "Unauthorized" },
-//         { status: 401 }
-//       );
-//     }
-
-//     const friendsCount = await prisma.friend.count({
-//       where: {
-//         OR: [
-//           { userId },
-//           { friendId: userId }
-//         ],
-//       },
-//     });
-
-//     if (friendsCount === 0) {
-//       return NextResponse.json(
-//         { error: "You must have at least 1 friend to post" },
-//         { status: 403 }
-//       );
-//     }
-
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0);
-
-//     const todayPostCount = await prisma.post.count({
-//       where: {
-//         userId,
-//         createdAt: { gte: today },
-//       },
-//     });
-
-//     if (friendsCount < 10 && todayPostCount >= friendsCount) {
-//       return NextResponse.json(
-//         { error: "Daily post limit reached" },
-//         { status: 403 }
-//       );
-//     }
-
-//     const post = await prisma.post.create({
-//       data: {
-//         content: body.content,
-//         mediaUrl: body.mediaUrl,
-//         mediaType: body.mediaType,
-//         userId,
-//       },
-//     });
-
-//     return NextResponse.json(post, { status: 201 });
-
-//   } catch (error) {
-//     console.error("CREATE POST ERROR:", error);
-//     return NextResponse.json(
-//       { error: "Failed to create post" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
 import { NextResponse } from "next/server";
-// import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId } from "@/lib/auth";
-import supabase from "@/lib/prisma";
-import { addPoints } from "@/lib/rewards";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-
     const userId = await getCurrentUserId();
 
     if (!userId) {
@@ -90,131 +14,103 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get friends count from Friend table
-    const { count: friendsCount, error: friendsError } = await supabase
+    // 1. Count Friends
+    // Count where user is sender (user_id) AND status is ACCEPTED
+    const { count: sentFriends, error: sentError } = await supabase
       .from('Friend')
       .select('*', { count: 'exact', head: true })
-      .eq('userId', userId)
+      .eq('user_id', userId)
       .eq('status', 'ACCEPTED');
 
-    if (friendsError) {
-      console.error('Friends count error:', friendsError);
-      return NextResponse.json(
-        { error: "Failed to check friends" },
-        { status: 500 }
-      );
-    }
+    if (sentError) throw sentError;
 
-    const acceptedFriendsCount = friendsCount || 0;
-
-    // Also count reverse friendships (where user is the friendId)
-    const { count: reverseFriendsCount, error: reverseFriendsError } = await supabase
+    // Count where user is receiver (friend_id) AND status is ACCEPTED
+    const { count: receivedFriends, error: receivedError } = await supabase
       .from('Friend')
       .select('*', { count: 'exact', head: true })
       .eq('friend_id', userId)
       .eq('status', 'ACCEPTED');
 
-    if (reverseFriendsError) {
-      console.error('Reverse friends count error:', reverseFriendsError);
+    if (receivedError) throw receivedError;
+
+    const totalFriends = (sentFriends || 0) + (receivedFriends || 0);
+
+    // 2. Determine Daily Limit
+    let dailyLimit = 0;
+    if (totalFriends === 0) {
+      dailyLimit = 0;
+    } else if (totalFriends < 2) {
+      // 1 friend -> 1 post
+      dailyLimit = 1;
+    } else if (totalFriends === 2) {
+      // 2 friends -> 2 posts
+      dailyLimit = 2;
+    } else if (totalFriends > 10) {
+      // > 10 friends -> Unlimited
+      dailyLimit = Infinity;
+    } else {
+      // 3-10 friends -> 1 post (Default rule is 1 time a day unless specific cases met)
+      dailyLimit = 1;
     }
 
-    const totalFriendsCount = acceptedFriendsCount + (reverseFriendsCount || 0);
-
-    // Calculate allowed posts per day based on friends
-    const allowedPostsPerDay = totalFriendsCount > 10 ? Infinity : totalFriendsCount;
-
-    if (allowedPostsPerDay === 0) {
+    if (dailyLimit === 0) {
       return NextResponse.json(
-        { error: "Add at least one friend to post" },
+        { error: "You need at least 1 friend to post on the public page." },
         { status: 403 }
       );
     }
 
-    // Check daily limit
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // 3. Check Today's Usage
+    if (dailyLimit !== Infinity) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayIso = today.toISOString();
 
-    // Count today's posts
-    const { count: todayPostCount, error: countError } = await supabase
-      .from("Post")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", today.toISOString());
+      const { count: postsToday, error: postsError } = await supabase
+        .from('Post')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('createdAt', todayIso);
 
-    if (countError) {
-      console.error("COUNT ERROR:", countError);
+      if (postsError) throw postsError;
+
+      if ((postsToday || 0) >= dailyLimit) {
+        return NextResponse.json(
+          { error: `Daily post limit reached. You can post ${dailyLimit} times a day with ${totalFriends} friends.` },
+          { status: 403 }
+        );
+      }
     }
 
-    const postCount = todayPostCount || 0;
+    // 4. Create Post
+    const { data: post, error: createError } = await supabase
+      .from('Post')
+      .insert({
+        content: body.content,
+        media_url: body.mediaUrl,
+        media_type: body.mediaType, // Expecting 'IMAGE' or 'VIDEO'
+        user_id: userId,
+      })
+      .select(`
+        *,
+        author:User (
+          name,
+          email
+        )
+      `)
+      .single();
 
-    if (allowedPostsPerDay !== Infinity && postCount >= allowedPostsPerDay) {
-      return NextResponse.json(
-        { error: "Daily post limit reached" },
-        { status: 403 }
-      );
+    if (createError) {
+      console.error("Post Create Error:", createError);
+      return NextResponse.json({ error: "Failed to create post" }, { status: 500 });
     }
 
-    // TEMP: Disable daily limit check for debugging
-    // if (friendsCount < 10 && postCount >= friendsCount) {
-    //   return NextResponse.json(
-    //     { error: "Daily post limit reached" },
-    //     { status: 403 }
-    //   );
-    // }
+    return NextResponse.json(post, { status: 201 });
 
-    // Create post
-    console.log("POST CREATE: Creating post with data:", {
-      userId: userId,
-      content: body.content,
-      mediaUrl: body.mediaUrl,
-      mediaType: body.mediaType,
-    });
-    // Prepare insert data
-    const insertData: any = {
-      user_id: userId,
-      content: body.content,
-    };
-
-    if (body.mediaUrl) insertData.media_url = body.mediaUrl;
-    if (body.mediaType) insertData.media_type = body.mediaType;
-
-    const { error: postError } = await supabase
-      .from("Post")
-      .insert(insertData);
-
-    if (postError) {
-      console.error("CREATE POST ERROR:", postError);
-      return NextResponse.json(
-        { error: `Failed to create post: ${postError.message}` },
-        { status: 500 }
-      );
-    }
-
-    // Create a mock post object for the frontend
-    const mockPost = {
-      id: `temp-${Date.now()}`, // Temporary ID
-      content: body.content,
-      mediaUrl: body.mediaUrl || null,
-      mediaType: body.mediaType || null,
-      createdAt: new Date().toISOString(),
-      likes: [],
-      likesCount: 0,
-      likedByMe: false,
-    };
-
-    // Award 5 points for creating a post
-    try {
-      await addPoints(userId, 5, "Created a post");
-    } catch (pointsError) {
-      console.error("Failed to award points:", pointsError);
-    }
-
-    return NextResponse.json(mockPost, { status: 201 });
-
-  } catch (err) {
-    console.error("CREATE POST ERROR:", err);
+  } catch (error) {
+    console.error("CREATE POST ERROR:", error);
     return NextResponse.json(
-      { error: "Failed to create post" },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

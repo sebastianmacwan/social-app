@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import supabase from "@/lib/prisma";
+import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId } from "@/lib/auth";
 
 export async function GET() {
@@ -66,14 +66,14 @@ export async function GET() {
     // 3️⃣ Normalize the data
     const normalized = posts.map(post => ({
       id: post.id,
-      content: post.caption,
-      mediaUrl: post.mediaUrl,
-      mediaType: post.mediaType,
-      createdAt: post.createdat,
+      content: post.content,
+      mediaUrl: post.media_url,
+      mediaType: post.media_type,
+      createdAt: post.created_at,
       user: post.User,
-      likesCount: post.likes ? post.likes.length : 0,
-      isLikedByMe: post.likes ? post.likes.includes(userId) : false,
-      commentCount: 0, // No comments in simplified schema
+      likesCount: 0, // Need to fetch separately or use join
+      isLikedByMe: false,
+      commentCount: 0,
     }));
 
     return NextResponse.json(normalized, { status: 200 });

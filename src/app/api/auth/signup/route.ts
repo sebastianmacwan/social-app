@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import supabase from "@/lib/prisma"; // renamed to supabase
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from "@/lib/supabaseClient";
 import { hashPassword } from "@/lib/password";
 
 export async function POST(req: Request) {
@@ -17,50 +16,53 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Sign up with Supabase auth
-    // Temporarily disabled due to rate limits - using direct insert for development
-    // const { data, error } = await supabase.auth.signUp({
-    //   email,
-    //   password,
-    // });
+    // Check if user exists
+    const { data: existingUsers, error: searchError } = await supabase
+      .from('User')
+      .select('id')
+      .eq('email', email);
 
-    // if (error) {
-    //   return NextResponse.json(
-    //     { message: error.message },
-    //     { status: 400 }
-    //   );
-    // }
+    if (searchError) {
+      console.error("Supabase Search Error:", searchError);
+      return NextResponse.json({ message: "Database error checking user" }, { status: 500 });
+    }
 
-    // const userId = data.user?.id;
-    // Temporary: generate a UUID for development
-    const userId = uuidv4();
+    if (existingUsers && existingUsers.length > 0) {
+      return NextResponse.json(
+        { message: "User already exists with this email" },
+        { status: 400 }
+      );
+    }
 
     // Hash the password
     const hashedPassword = await hashPassword(password);
 
-    if (userId) {
-      // ✅ Insert into custom User table
-      const { error: insertError } = await supabase
-        .from('User')
-        .insert({
-          id: userId,
+    // ✅ Create User in Supabase
+    // Note: Using quotes for column names to match CaseSensitive columns if created that way,
+    // or standard snake_case if user followed SQL conventions. 
+    // Based on previous Prisma schema, we expect 'subscription_plan' (mapped) and 'points'.
+    const { data: newUser, error: createError } = await supabase
+      .from('User')
+      .insert([
+        {
           name,
           email,
           password: hashedPassword,
           points: 0,
-        });
+          subscription_plan: "FREE",
+          "preferredLanguage": "en" // Quoted to match Prisma default expectation of mixed case
+        },
+      ])
+      .select()
+      .single();
 
-      if (insertError) {
-        console.error("Insert error:", insertError);
-        return NextResponse.json(
-          { message: "Failed to create user profile" },
-          { status: 500 }
-        );
-      }
+    if (createError) {
+      console.error("Supabase Create Error:", createError);
+      return NextResponse.json({ message: "Failed to create user: " + createError.message }, { status: 500 });
     }
 
     return NextResponse.json(
-      { message: "Signup successful" },
+      { message: "Signup successful", user: { id: newUser.id, email: newUser.email, name: newUser.name } },
       { status: 201 }
     );
   } catch (err) {

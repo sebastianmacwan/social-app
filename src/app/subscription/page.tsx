@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 
 const plans = [
-  { name: "FREE", price: 0, limit: "1 post/day" },
-  { name: "BRONZE", price: 100, limit: "5 posts/day" },
-  { name: "SILVER", price: 300, limit: "10 posts/day" },
-  { name: "GOLD", price: 1000, limit: "Unlimited" },
+  { id: "FREE", price: 0, limit: "friend_based" },
+  { id: "BRONZE_100", price: 100, limit: "10 posts/day" },
+  { id: "BRONZE_300", price: 300, limit: "20 posts/day" },
+  { id: "GOLD", price: 1000, limit: "Unlimited" },
 ];
 
 const TEXT = {
@@ -15,135 +15,132 @@ const TEXT = {
     title: "Choose a Subscription",
     subscribe: "Subscribe",
     processing: "Processing...",
-    restricted: "Payments are allowed only between 10–11 AM IST.",
+    restricted: "Payments are allowed only between 10 AM – 11 AM IST.",
     success: "Subscription activated successfully!",
     bronze: "Bronze",
-    silver: "Silver",
     gold: "Gold",
     day: "day",
     questionsPerDay: "posts/day",
-    "1 question/day": "1 post/day",
-    "5 questions/day": "5 posts/day",
-    "10 questions/day": "10 posts/day",
-
+    friend_based: "Friend-based limits (0 friends: 0, 1: 1, 2-10: 2, >10: Unlimited)",
+    "10 posts/day": "10 posts/day",
+    "20 posts/day": "20 posts/day",
     month: "month",
     unlimited: "Unlimited",
     0: "Free",
     100: "100 INR",
     300: "300 INR",
     1000: "1000 INR",
-   free: "Free",
-
+    free: "Free",
   },
   hi: {
     title: "सदस्यता चुनें",
     subscribe: "सदस्यता लें",
     processing: "प्रक्रिया में...",
-    restricted: "भुगतान केवल सुबह 10–11 बजे (IST) के बीच मान्य है।",
+    restricted: "भुगतान केवल सुबह 10 बजे – 11 बजे (IST) के बीच मान्य है।",
     success: "सदस्यता सफलतापूर्वक सक्रिय हो गई!",
     bronze: "ब्रोंज",
     silver: "सिल्वर",
     gold: "गोल्ड",
     day: "दिन",
     questionsPerDay: "पोस्ट/दिन",
-    "1 question/day": "1 पोस्ट/दिन",
-    "5 questions/day": "5 पोस्ट/दिन",
-    "10 questions/day": "10 पोस्ट/दिन",
+    friend_based: "मित्र-आधारित सीमाएं (0 मित्र: 0, 1: 1, 2-10: 2, >10: असीमित)",
+    "10 posts/day": "10 पोस्ट/दिन",
+    "20 posts/day": "20 पोस्ट/दिन",
     month: "महीना",
     unlimited: "असीमित",
     0: "नि:शुल्क",
     100: "100 रुपये",
     300: "300 रुपये",
     1000: "1000 रुपये",
-   free: "नि:शुल्क",
+    free: "नि:शुल्क",
   },
   fr: {
     title: "Choisir un abonnement",
     subscribe: "S’abonner",
     processing: "Traitement...",
-    restricted: "Paiements autorisés uniquement entre 10h et 11h IST.",
+    restricted: "Paiements autorisés uniquement entre 10h00 et 11h00 IST.",
     success: "Abonnement activé avec succès !",
     bronze: "Bronze",
     silver: "Argent",
     gold: "Or",
     day: "jour",
-    questionsPerDay: "questions/jour",
-    "1 question/day": "1 question/jour",
-    "5 questions/day": "5 questions/jour",
-    "10 questions/day": "10 questions/jour",
+    questionsPerDay: "posts/jour",
+    friend_based: "Limites basées sur les amis (0 ami: 0, 1: 1, 2-10: 2, >10: Illimité)",
+    "10 posts/day": "10 posts/jour",
+    "20 posts/day": "20 posts/jour",
     month: "mois",
     unlimited: "Illimité",
     0: "Gratuit",
     100: "100 INR",
     300: "300 INR",
     1000: "1000 INR",
-    FREE: "Gratuit",
+    free: "Gratuit",
   },
   es: {
     title: "Elegir suscripción",
     subscribe: "Suscribirse",
     processing: "Procesando...",
-    restricted: "Pagos permitidos solo entre 10–11 AM IST.",
+    restricted: "Pagos permitidos solo entre 10 AM y 11 AM IST.",
     success: "¡Suscripción activada con éxito!",
     bronze: "Bronce",
     silver: "Plata",
     gold: "Oro",
     day: "día",
-    questionsPerDay: "preguntas/día",
-    "1 question/day": "1 pregunta/día",
-    "5 questions/day": "5 preguntas/día",
-    "10 questions/day": "10 preguntas/día",
+    questionsPerDay: "publicaciones/día",
+    friend_based: "Límites basados en amigos (0 amigos: 0, 1: 1, 2-10: 2, >10: Ilimitado)",
+    "10 posts/day": "10 publicaciones/día",
+    "20 posts/day": "20 publicaciones/día",
     month: "mes",
     unlimited: "Ilimitado",
     0: "Gratis",
     100: "100 INR",
     300: "300 INR",
     1000: "1000 INR",
-    FREE: "Free",
+    free: "Gratis",
   },
   pt: {
     title: "Escolher assinatura",
     subscribe: "Assinar",
     processing: "Processando...",
-    restricted: "Pagamentos permitidos apenas entre 10–11 AM IST.",
+    restricted: "Pagamentos permitidos apenas entre 10h e 11h IST.",
     success: "Assinatura ativada com sucesso!",
     bronze: "Bronze",
     silver: "Prata",
     gold: "Ouro",
     day: "dia",
-    questionsPerDay: "perguntas/dia",
-    "1 question/day": "1 pergunta/dia",
-    "5 questions/day": "5 perguntas/dia",
-    "10 questions/day": "10 perguntas/dia",
+    questionsPerDay: "postagens/dia",
+    friend_based: "Limites baseados em amigos (0 amigos: 0, 1: 1, 2-10: 2, >10: Ilimitado)",
+    "10 posts/day": "10 postagens/dia",
+    "20 posts/day": "20 postagens/dia",
     month: "mês",
     unlimited: "Ilimitado",
     0: "Grátis",
     100: "100 INR",
     300: "300 INR",
     1000: "1000 INR",
-    FREE: "Grátis",
+    free: "Grátis",
   },
   zh: {
     title: "选择订阅",
     subscribe: "订阅",
     processing: "处理中...",
-    restricted: "仅允许在印度标准时间 10–11 点付款。",
+    restricted: "仅允许在印度标准时间 10:00 至 11:00 之间付款。",
     success: "订阅成功！",
     bronze: "青铜",
     silver: "白银",
     gold: "黄金",
     day: "天",
-    questionsPerDay: "问题/天",
-    "1 question/day": "1 问题/天",
-    "5 questions/day": "5 问题/天",
-    "10 questions/day": "10 问题/天",
+    questionsPerDay: "帖子/天",
+    friend_based: "基于好友的限制（0个好友：0，1个：1，2-10个：2，>10个：无限）",
+    "10 posts/day": "10 帖子/天",
+    "20 posts/day": "20 帖子/天",
     month: "月",
     unlimited: "无限",
     0: "免费",
     100: "100 印度卢比",
     300: "300 印度卢比",
     1000: "1000 印度卢比",
-    FREE: "免费",
+    free: "免费",
   },
 };
 
@@ -177,10 +174,13 @@ export default function SubscriptionPage() {
 
     const data = await res.json();
 
-    if (data.message?.includes("10–11")) {
+    if (res.status === 403) {
       setToast({ type: "error", text: t.restricted });
+    } else if (!res.ok) {
+      setToast({ type: "error", text: data.error || "Failed to subscribe" });
     } else {
       setToast({ type: "success", text: t.success });
+      setCurrentPlan(plan);
     }
 
     setLoading(null);
@@ -200,17 +200,15 @@ export default function SubscriptionPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {plans.map(plan => (
           <div
-            key={plan.name}
+            key={plan.id}
             className="border rounded-xl p-6 shadow-sm bg-white"
           >
-            {/* <h2 className="text-xl font-semibold">{plan.name}</h2> */}
             <h2 className="text-xl font-semibold">
-              {plan.name === "BRONZE" ? t.bronze :
-                plan.name === "SILVER" ? t.silver :
-                  plan.name === "GOLD" ? t.gold : plan.name}
+              {plan.id === "FREE" ? t.free :
+               plan.id.startsWith("BRONZE") ? t.bronze :
+               plan.id === "GOLD" ? t.gold : plan.id}
             </h2>
 
-            {/* <p className="text-gray-600 mt-1">₹{plan.price} / month</p> */}
             <p className="text-gray-600 mt-1">
               {t[plan.price]} / {t.month}
             </p>
@@ -220,11 +218,11 @@ export default function SubscriptionPage() {
 
 
             <button
-              disabled={loading === plan.name}
-              onClick={() => subscribe(plan.name)}
+              disabled={loading === plan.id}
+              onClick={() => subscribe(plan.id)}
               className="mt-4 w-full py-2 rounded bg-black text-white disabled:opacity-50"
             >
-              {loading === plan.name ? t.processing : t.subscribe}
+              {loading === plan.id ? t.processing : t.subscribe}
             </button>
           </div>
         ))}

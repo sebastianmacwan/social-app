@@ -7,9 +7,164 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Add your models here (User, Post, etc.)
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  password          String
+  phone             String?   @unique
+  points            Int       @default(0)
+  preferredLanguage String    @default("en")
+  
+  // Subscription
+  subscriptionPlan  SubscriptionPlan @default(FREE) @map("subscription_plan")
+  subscriptionExpiresAt DateTime?    @map("subscription_expires_at")
+  
+  // Security
+  lastResetRequest  DateTime?
+  
+  // Relations
+  posts             Post[]
+  comments          Comment[]
+  likes             Like[]
+  
+  questions         Question[]
+  answers           Answer[]
+  
+  // Friends System
+  sentRequests      Friend[] @relation("Sender")
+  receivedRequests  Friend[] @relation("Receiver")
+  
+  loginHistory      LoginHistory[]
+  subscriptions     Subscription[]
+  otps              OTP[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Friend {
+  id        String   @id @default(uuid())
+  senderId  String   @map("user_id")
+  sender    User     @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String  @map("friend_id")
+  receiver  User     @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  status    FriendshipStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([senderId, receiverId])
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  content   String?
+  mediaUrl  String?  @map("media_url")
+  mediaType MediaType? @map("media_type")
+  authorId  String   @map("user_id")
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes     Like[]
+  comments  Comment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  postId    String   @map("post_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String   @map("user_id")
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model OTP {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  otp       String
+  type      String   @default("login")
+  lang      String?  @default("en")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now())
+}
+
+// StackOverflow-like Features
+model Question {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  answers   Answer[]
+  upvotes   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Answer {
+  id        String   @id @default(uuid())
+  content   String
+  questionId String
+  question  Question @relation(fields: [questionId], references: [id])
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  upvotes   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  plan      SubscriptionPlan
+  amount    Float    @map("price")
+  startDate DateTime @default(now())
+  endDate   DateTime
+  status    String // ACTIVE, EXPIRED
+  paymentId String?
+  postsPerDay Int?   @map("posts_per_day")
+  createdAt DateTime @default(now())
+}
+
+model LoginHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  browser   String?
+  os        String?
+  deviceType String?
+  ipAddress String?
+  timestamp DateTime @default(now())
+}
+
+enum SubscriptionPlan {
+  FREE
+  BRONZE_100
+  BRONZE_300
+  GOLD
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
 }

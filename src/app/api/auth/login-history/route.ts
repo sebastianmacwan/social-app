@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-// import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId } from "@/lib/auth";
 
 export async function GET() {
@@ -8,27 +8,55 @@ export async function GET() {
     return NextResponse.json([], { status: 401 });
   }
 
-  // Mock login history since we don't have a database table yet
-  const mockHistory = [
-    {
-      id: "1",
-      ip: "192.168.1.1",
-      browser: "Chrome",
-      os: "Windows",
-      device: "Desktop",
-      isSuspicious: false,
-      createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    },
-    {
-      id: "2",
-      ip: "192.168.1.1",
-      browser: "Chrome",
-      os: "Windows",
-      device: "Desktop",
-      isSuspicious: false,
-      createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-    },
-  ];
+  // Fetch real history from Supabase with fallbacks for table and column names
+  const tryFetch = async (tableName: string) => {
+    // Try user_id filter first
+    let result = await supabase
+      .from(tableName)
+      .select('*')
+      .eq('user_id', userId);
 
-  return NextResponse.json(mockHistory);
+    // If column doesn't exist (42703), try userId filter
+    if (result.error && result.error.code === '42703') {
+      result = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('userId', userId);
+    }
+    return result;
+  };
+
+  let { data: rawHistory, error } = await tryFetch('LoginHistory');
+
+  if (error && error.code === 'PGRST205') {
+    const { data: altHistory, error: altError } = await tryFetch('login_history');
+    if (altError && altError.code === 'PGRST205') {
+      const { data: pluralHistory, error: pluralError } = await tryFetch('Login_History');
+      rawHistory = pluralHistory;
+      error = pluralError;
+    } else {
+      rawHistory = altHistory;
+      error = altError;
+    }
+  }
+
+  if (error) {
+    console.error("Error fetching login history:", error);
+    return NextResponse.json([], { status: 500 });
+  }
+
+  // Map database fields to UI fields and sort in-memory to handle inconsistent sorting columns
+  const history = (rawHistory || [])
+    .map((item: any) => ({
+      id: item.id,
+      ip: item.ip_address || item.ip || item.ipAddress || "",
+      browser: item.browser || "",
+      os: item.os || "",
+      device: item.device_type || item.device || item.deviceType || "",
+      createdAt: item.timestamp || item.created_at || item.createdAt || new Date().toISOString(),
+      isSuspicious: item.is_suspicious || item.isSuspicious || false
+    }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return NextResponse.json(history);
 }

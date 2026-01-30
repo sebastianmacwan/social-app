@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import supabase from "@/lib/prisma";
+import { supabase } from "@/lib/supabaseClient";
 import { sendPasswordReset } from "@/lib/email";
 import { generatePassword, hashPassword } from "@/lib/password";
-
-// In-memory store for daily reset tracking (in production, use Redis/database)
-const dailyResets = new Map<string, Date>();
 
 export async function POST(req: Request) {
   try {
@@ -18,83 +15,63 @@ export async function POST(req: Request) {
     }
 
     // Find user
-    let user;
+    let userQuery = supabase.from('User').select('*');
     if (email) {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('email', email)
-        .single();
+      userQuery = userQuery.eq('email', email);
+    } else {
+      userQuery = userQuery.eq('phone', phone);
+    }
+    
+    const { data: user, error: userError } = await userQuery.single();
 
-      if (error || !data) {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
-        );
-      }
-      user = data;
-    } else if (phone) {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('phone', phone)
-        .single();
-
-      if (error || !data) {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
-        );
-      }
-      user = data;
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
     }
 
     // Check daily limit
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const userKey = email || phone!;
-    const lastReset = dailyResets.get(userKey);
-
-    if (lastReset && lastReset >= today) {
-      return NextResponse.json(
-        { error: "You can reset password only once per day" },
-        { status: 429 }
-      );
+    
+    if (user.lastResetRequest) {
+      const lastReset = new Date(user.lastResetRequest);
+      if (lastReset >= today) {
+        return NextResponse.json(
+          { error: "Use only time" }, // "show warning message like use only time"
+          { status: 429 }
+        );
+      }
     }
 
     // Generate new password
     const newPassword = generatePassword();
     const hashedPassword = await hashPassword(newPassword);
 
-    // Update user password
+    // Update user password and lastResetRequest
     const { error: updateError } = await supabase
-      .from('users')
-      .update({ password: hashedPassword })
+      .from('User')
+      .update({
+        password: hashedPassword,
+        lastResetRequest: new Date().toISOString(),
+      })
       .eq('id', user.id);
 
     if (updateError) {
-      console.error("Update password error:", updateError);
-      return NextResponse.json({ error: "Failed to update password" }, { status: 500 });
+      console.error("Update Password Error:", updateError);
+      return NextResponse.json(
+        { error: "Failed to update password" },
+        { status: 500 }
+      );
     }
 
     // Send email with new password
-    if (email) {
-      await sendPasswordReset(email, newPassword);
+    if (user.email) {
+      await sendPasswordReset(user.email, newPassword);
     } else if (phone) {
-      // For phone, perhaps send SMS, but for now log
+      // For phone, perhaps send SMS
       console.log(`📱 PASSWORD RESET sent to ${phone}: ${newPassword}`);
-    }
-
-    // Update the daily reset tracking
-    dailyResets.set(userKey, new Date());
-
-    // Clean up old entries (older than 24 hours)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    for (const [key, date] of Array.from(dailyResets.entries())) {
-      if (date < yesterday) {
-        dailyResets.delete(key);
-      }
     }
 
     return NextResponse.json({

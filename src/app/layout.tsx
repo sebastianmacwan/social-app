@@ -69,6 +69,41 @@ function LayoutContent({
   setUser: any;
 }) {
   const { t } = useLanguage();
+  const [isRestricted, setIsRestricted] = useState(false);
+
+  useEffect(() => {
+    const checkRestriction = () => {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (!isMobile) return false;
+
+      const now = new Date();
+      const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+      const istMinutes = utcMinutes + 330; // UTC+5:30
+      const istHour = (Math.floor(istMinutes / 60)) % 24;
+
+      // Restrict if NOT between 10 AM and 1 PM (10:00 - 13:00)
+      return istHour < 10 || istHour >= 13;
+    };
+
+    setIsRestricted(checkRestriction());
+  }, []);
+
+  if (isRestricted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-6 text-center">
+        <div>
+          <h1 className="text-3xl font-bold mb-4">Access Restricted</h1>
+          <p className="text-lg text-gray-400">
+            Mobile access is only allowed between <br />
+            <span className="text-white font-bold text-xl">10:00 AM and 1:00 PM IST</span>.
+          </p>
+          <p className="mt-6 text-sm text-gray-500">
+            Please use a desktop browser or wait for the permitted window.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

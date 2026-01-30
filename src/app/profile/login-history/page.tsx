@@ -1,64 +1,3 @@
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import Link from "next/link";
-
-
-// type LoginItem = {
-//   id: number;
-//   ip: string;
-//   browser: string;
-//   os: string;
-//   device: string;
-//   isSuspicious: boolean;
-//   createdAt: string;
-// };
-
-// export default function LoginHistoryPage() {
-//   const [data, setData] = useState<LoginItem[]>([]);
-
-//   useEffect(() => {
-//     fetch("/api/auth/login-history")
-//       .then(res => res.json())
-//       .then(setData);
-//   }, []);
-
-//   return (
-//     <main className="max-w-3xl mx-auto px-4 py-6">
-//         <Link
-//   href="/profile"
-//   className="text-sm text-blue-600 hover:underline mb-4 inline-block"
-// >
-//   ← Back to Profile
-// </Link>
-//       <h1 className="text-2xl font-bold mb-6">Login History</h1>
-
-//       <div className="space-y-4">
-//         {data.map(item => (
-//           <div
-//             key={item.id}
-//             className="border rounded-lg p-4 bg-white"
-//           >
-//             <p><strong>IP:</strong> {item.ip}</p>
-//             <p><strong>Browser:</strong> {item.browser}</p>
-//             <p><strong>OS:</strong> {item.os}</p>
-//             <p><strong>Device:</strong> {item.device}</p>
-//             <p className="text-sm text-gray-500">
-//               {new Date(item.createdAt).toLocaleString()}
-//             </p>
-
-//             {item.isSuspicious && (
-//               <span className="inline-block mt-2 px-2 py-1 text-xs rounded bg-red-100 text-red-600">
-//                 Suspicious Login
-//               </span>
-//             )}
-//           </div>
-//         ))}
-//       </div>
-//     </main>
-//   );
-// }
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -92,6 +31,25 @@ export default function LoginHistoryPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const formatTime = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      // Explicitly format to IST (UTC+5:30)
+      return new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(date);
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   return (
     <main className="max-w-3xl mx-auto px-4 py-6">
       <Link
@@ -115,15 +73,17 @@ export default function LoginHistoryPage() {
         {data.map(item => (
           <div
             key={item.id}
-            className="border rounded-lg p-4 bg-white"
+            className="border rounded-lg p-4 bg-white shadow-sm"
           >
-            <p><strong>IP:</strong> {item.ip}</p>
-            <p><strong>Browser:</strong> {item.browser}</p>
-            <p><strong>OS:</strong> {item.os}</p>
-            <p><strong>Device:</strong> {item.device}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <p><strong>IP:</strong> <code className="bg-gray-100 px-1 rounded">{item.ip}</code></p>
+              <p><strong>Browser:</strong> {item.browser}</p>
+              <p><strong>OS:</strong> {item.os}</p>
+              <p><strong>Device:</strong> {item.device}</p>
+            </div>
 
-            <p className="text-sm text-gray-500">
-              {new Date(item.createdAt).toLocaleString()}
+            <p className="text-sm text-gray-500 mt-2 font-mono">
+              {formatTime(item.createdAt)} (IST)
             </p>
 
             {item.isSuspicious && (

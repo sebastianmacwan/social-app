@@ -73,7 +73,7 @@ export default function PostForm({
     }
 
     if (!res.ok) {
-      alert("Posting failed");
+      alert(data?.error || "Posting failed");
       setLoading(false);
       return;
     }
