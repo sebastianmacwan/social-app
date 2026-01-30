@@ -15,38 +15,37 @@ export async function POST(
     const postId = params.id;
 
     // 1. Check if already liked - with fallbacks
-    let { data: existingLike, error: fetchError } = await supabase
+    let result: any;
+    
+    result = await supabase
       .from("Like")
       .select("id")
       .eq("user_id", userId)
       .eq("post_id", postId)
       .maybeSingle();
 
-    if (fetchError && fetchError.code === 'PGRST205') {
+    if (result.error && result.error.code === 'PGRST205') {
       console.log("Like table not found, trying 'like'...");
-      const { data: altLike, error: altLikeError } = await supabase
+      result = await supabase
         .from("like")
         .select("id")
         .eq("user_id", userId)
         .eq("post_id", postId)
         .maybeSingle();
       
-      if (altLikeError && altLikeError.code === 'PGRST205') {
+      if (result.error && result.error.code === 'PGRST205') {
         console.log("like table not found, trying 'likes'...");
-        const { data: pluralLike, error: pluralLikeError } = await supabase
+        result = await supabase
           .from("likes")
           .select("id")
           .eq("user_id", userId)
           .eq("post_id", postId)
           .maybeSingle();
-        
-        existingLike = pluralLike;
-        fetchError = pluralLikeError;
-      } else {
-        existingLike = altLike;
-        fetchError = altLikeError;
       }
     }
+
+    let existingLike = result.data;
+    let fetchError = result.error;
 
     if (fetchError) {
       console.error("Fetch like error:", fetchError);
