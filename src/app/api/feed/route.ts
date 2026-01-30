@@ -10,26 +10,45 @@ export async function GET(req: Request) {
     let posts: any[] = [];
     let postsError = null;
 
-    const tryFetchPosts = async (tableName: string, userJoin: string) => {
-      // Use any to avoid Supabase's complex template literal type inference which causes build errors
-      let result: any;
+    // const tryFetchPosts = async (tableName: string, userJoin: string) => {
+    //   // Use any to avoid Supabase's complex template literal type inference which causes build errors
+    //   let result: any;
       
-      // First try with created_at
-      result = await supabase
-        .from(tableName)
-        .select(`id, content, created_at, media_url, media_type, user_id, ${userJoin}(id, name, email)`)
-        .order('created_at', { ascending: false });
+    //   // First try with created_at
+    //   result = await supabase
+    //     .from(tableName)
+    //     .select(`id, content, created_at, media_url, media_type, user_id, ${userJoin}(id, name, email)`)
+    //     .order('created_at', { ascending: false });
 
-      // If created_at fails, try with createdAt
-      if (result.error && (result.error.code === '42703' || result.error.message?.includes('created_at'))) {
-        result = await supabase
-          .from(tableName)
-          .select(`id, content, "createdAt", media_url, media_type, user_id, ${userJoin}(id, name, email)`)
-          .order('createdAt', { ascending: false });
-      }
+    //   // If created_at fails, try with createdAt
+    //   if (result.error && (result.error.code === '42703' || result.error.message?.includes('created_at'))) {
+    //     result = await supabase
+    //       .from(tableName)
+    //       .select(`id, content, "createdAt", media_url, media_type, user_id, ${userJoin}(id, name, email)`)
+    //       .order('createdAt', { ascending: false });
+    //   }
 
-      return { data: result.data, error: result.error };
-    };
+    //   return { data: result.data, error: result.error };
+    // };
+// REPLACE your tryFetchPosts with this:
+const tryFetchPosts = async (tableName: string, userJoin: string) => {
+  // Use 'as any' directly on the supabase call to stop the compiler from "reading" the string
+  const result = await (supabase
+    .from(tableName)
+    .select(`id, content, created_at, media_url, media_type, user_id, ${userJoin}(id, name, email)`)
+    .order('created_at', { ascending: false }) as any);
+
+  // If created_at fails (Error 42703), try the alternative
+  if (result.error && (result.error.code === '42703')) {
+    const altResult = await (supabase
+      .from(tableName)
+      .select(`id, content, "createdAt", media_url, media_type, user_id, ${userJoin}(id, name, email)`)
+      .order('createdAt', { ascending: false }) as any);
+    return { data: altResult.data, error: altResult.error };
+  }
+
+  return { data: result.data, error: result.error };
+};
 
     const { data: p1, error: pe1 } = await tryFetchPosts('Post', 'User!user_id');
     if (pe1 && pe1.code === 'PGRST205') {
