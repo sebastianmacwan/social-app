@@ -60,15 +60,21 @@ export async function POST(req: Request) {
       }
       
       const sent = await sendSMSOTP(user.phone, generatedOTP, targetLanguage);
-      console.log(`Mobile OTP attempted to ${user.phone}. Success: ${sent}`);
+      console.log(`Mobile OTP status for ${user.phone}: ${sent ? 'SUCCESS' : 'FAILED'}`);
       
       if (!sent) {
         return NextResponse.json({ 
-          error: "Failed to send mobile OTP. Please check if TWILIO credentials are correctly set in environment variables." 
+          error: "Failed to process mobile OTP request." 
         }, { status: 500 });
       }
       
-      return NextResponse.json({ message: "OTP sent to mobile number: " + user.phone });
+      // If Twilio keys are missing, sendSMSOTP returns true and logs to console
+      const isSimulated = !process.env.TWILIO_ACCOUNT_SID;
+      return NextResponse.json({ 
+        message: isSimulated 
+          ? "SIMULATED OTP: Check server console for code (Free/Development mode)" 
+          : "OTP sent to mobile number: " + user.phone 
+      });
     }
 
   } catch (error) {

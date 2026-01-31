@@ -10,16 +10,21 @@ const client = accountSid && authToken ? twilio(accountSid, authToken) : null;
 
 export async function sendSMSOTP(to: string, otp: string, lang: string = 'en') {
   try {
-    if (!client || !fromPhone) {
-      console.warn('⚠️ Twilio credentials missing. SMS not sent.');
-      console.log(`[SIMULATED SMS] To: ${to}, OTP: ${otp}`);
-      return false;
-    }
-
     const dict = getDictionary(lang);
     // Strip HTML tags from the body for SMS
     const bodyText = dict.otp.body.replace('{otp}', otp).replace(/<[^>]*>?/gm, '');
     const message = `${bodyText} ${dict.otp.expires}`;
+
+    if (!client || !fromPhone) {
+      console.warn('⚠️ Twilio credentials missing. Using SIMULATED SMS for development.');
+      console.log(`\n************************************************`);
+      console.log(`[SIMULATED SMS]`);
+      console.log(`To: ${to}`);
+      console.log(`Message: ${message}`);
+      console.log(`OTP: ${otp}`);
+      console.log(`************************************************\n`);
+      return true; // Return true to allow flow to continue without paid SMS
+    }
 
     const response = await client.messages.create({
       body: message,
