@@ -8,6 +8,7 @@ export default function SignupPage() {
 
   const [name, setName] = useState(""); // ✅ added
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState(""); // ✅ added
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -21,6 +22,7 @@ export default function SignupPage() {
       body: JSON.stringify({
         name,     // ✅ required by Prisma
         email,
+        phone,    // ✅ added
         password,
       }),
     });
@@ -61,6 +63,15 @@ export default function SignupPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+        />
+
+        <br /><br />
+
+        <input
+          type="tel"
+          placeholder="Phone Number (e.g. +91...)"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
         />
 
         <br /><br />

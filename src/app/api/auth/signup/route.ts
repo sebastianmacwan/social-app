@@ -4,7 +4,7 @@ import { hashPassword } from "@/lib/password";
 
 export async function POST(req: Request) {
   try {
-    let { name, email, password } = await req.json();
+    let { name, email, password, phone } = await req.json();
     email = email.toLowerCase().trim();
     password = password.trim();
 
@@ -48,6 +48,7 @@ export async function POST(req: Request) {
           name,
           email,
           password: hashedPassword,
+          phone: phone || null,
           points: 0,
           subscription_plan: "FREE",
           "preferredLanguage": "en" // Quoted to match Prisma default expectation of mixed case
