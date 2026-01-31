@@ -207,41 +207,50 @@ export async function POST(req: Request) {
     // 7️⃣ Record Login History with Fallbacks
     const recordLoginHistory = async () => {
       const loginHistoryData = {
-        user_id: user.id,
+        userId: user.id,
         browser: deviceInfo.browser,
         os: deviceInfo.os,
-        device_type: deviceInfo.device,
-        ip_address: ipAddress,
+        deviceType: deviceInfo.device,
+        ipAddress: ipAddress,
         timestamp: new Date().toISOString(),
       };
 
+      console.log("📝 Attempting to record login history for user:", user.id);
+
       // Try different table names and column styles
       const tryInsert = async (tableName: string) => {
-        // Try snake_case
+        console.log(`Trying insert into table: ${tableName}`);
         let { error } = await supabase.from(tableName).insert(loginHistoryData);
         
-        // If column doesn't exist (42703), try camelCase or different names
+        // If column doesn't exist (42703), try snake_case or different names
         if (error && error.code === '42703') {
-          const camelData = {
-            userId: user.id,
+          console.log(`Column mismatch in ${tableName}, trying snake_case...`);
+          const snakeData = {
+            user_id: user.id,
             browser: deviceInfo.browser,
             os: deviceInfo.os,
-            device: deviceInfo.device,
-            ip: ipAddress,
-            createdAt: new Date().toISOString(),
+            device_type: deviceInfo.device,
+            ip_address: ipAddress,
+            timestamp: new Date().toISOString(),
           };
-          return await supabase.from(tableName).insert(camelData);
+          return await supabase.from(tableName).insert(snakeData);
         }
         return { error };
       };
 
-      let { error: historyError } = await tryInsert('LoginHistory');
+      let result = await tryInsert('LoginHistory');
 
-      if (historyError && historyError.code === 'PGRST205') {
-        const { error: e2 } = await tryInsert('login_history');
-        if (e2 && e2.code === 'PGRST205') {
-          await tryInsert('Login_History');
+      if (result.error && result.error.code === 'PGRST205') {
+        result = await tryInsert('login_history');
+        if (result.error && result.error.code === 'PGRST205') {
+          result = await tryInsert('Login_History');
         }
+      }
+
+      if (result.error) {
+        console.error("❌ Login History Recording Failed:", result.error);
+      } else {
+        console.log("✅ Login History recorded successfully.");
       }
     };
 

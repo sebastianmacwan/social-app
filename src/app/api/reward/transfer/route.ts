@@ -8,13 +8,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { receiverId, amount } = await req.json();
+  const body = await req.json();
+  const { receiverId, toUserId, amount } = body;
+  const finalReceiverId = receiverId || toUserId;
 
-  if (!receiverId || !amount) {
+  if (!finalReceiverId || !amount) {
     return NextResponse.json({ error: "Receiver ID and amount required" }, { status: 400 });
   }
 
-  if (receiverId === senderId) {
+  if (finalReceiverId === senderId) {
     return NextResponse.json(
       { error: "Cannot transfer points to yourself" },
       { status: 400 }
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await transferPoints(senderId, receiverId, amount);
+  const result = await transferPoints(senderId, finalReceiverId, amount);
 
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 400 });

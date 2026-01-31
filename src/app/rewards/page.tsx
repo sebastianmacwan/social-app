@@ -121,12 +121,13 @@ const TEXT = {
     title: "Rewards",
     yourPoints: "Your Points",
     transferTitle: "Transfer Points",
-    receiverPlaceholder: "Receiver User ID",
+    receiverPlaceholder: "Recipient Email",
     amountPlaceholder: "Points to transfer",
     transfer: "Transfer",
     transferring: "Transferring...",
     minPointsError: "You need at least 10 points to transfer.",
     requiredError: "All fields are required.",
+    userNotFoundError: "Recipient user not found.",
     success: "Points transferred successfully!",
     failed: "Transfer failed",
   },
@@ -134,12 +135,13 @@ const TEXT = {
     title: "इनाम",
     yourPoints: "आपके अंक",
     transferTitle: "अंक स्थानांतरित करें",
-    receiverPlaceholder: "प्राप्तकर्ता उपयोगकर्ता आईडी",
+    receiverPlaceholder: "प्राप्तकर्ता का ईमेल",
     amountPlaceholder: "स्थानांतरित करने के अंक",
     transfer: "स्थानांतरित करें",
     transferring: "स्थानांतरित किया जा रहा है...",
     minPointsError: "स्थानांतरण के लिए कम से कम 10 अंक आवश्यक हैं।",
     requiredError: "सभी फ़ील्ड आवश्यक हैं।",
+    userNotFoundError: "प्राप्तकर्ता उपयोगकर्ता नहीं मिला।",
     success: "अंक सफलतापूर्वक स्थानांतरित किए गए!",
     failed: "स्थानांतरण विफल रहा",
   },
@@ -234,27 +236,47 @@ export default function RewardsPage() {
 
     setLoading(true);
 
-    const res = await fetch("/api/reward/transfer", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        receiverId: Number(receiverId),
-        amount: Number(amount),
-      }),
-    });
+    try {
+      // 1. Find recipient by email first
+      const findRes = await fetch("/api/users/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: receiverId }), // Here receiverId is actually the email from the input
+      });
+      const findData = await findRes.json();
 
-    const data = await res.json();
+      if (!findRes.ok || !findData.user) {
+        setMessage(t.userNotFoundError);
+        setLoading(false);
+        return;
+      }
 
-    if (!res.ok) {
-      setMessage(data.error || t.failed);
-    } else {
-      setMessage(t.success);
-      setPoints(prev => prev - Number(amount));
-      setReceiverId("");
-      setAmount("");
+      // 2. Perform transfer using the found UUID
+      const res = await fetch("/api/reward/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toUserId: findData.user.id,
+          amount: Number(amount),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.error || t.failed);
+      } else {
+        setMessage(t.success);
+        setPoints(prev => prev - Number(amount));
+        setReceiverId("");
+        setAmount("");
+      }
+    } catch (err) {
+      console.error("Transfer error:", err);
+      setMessage(t.failed);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -270,7 +292,7 @@ export default function RewardsPage() {
         <h2 className="font-semibold text-lg">{t.transferTitle}</h2>
 
         <input
-          type="number"
+          type="email"
           placeholder={t.receiverPlaceholder}
           value={receiverId}
           onChange={e => setReceiverId(e.target.value)}
