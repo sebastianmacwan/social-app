@@ -26,14 +26,27 @@ export async function sendSMSOTP(to: string, otp: string, lang: string = 'en') {
       return true; 
     }
 
-    console.log(`📱 Attempting to send REAL SMS to ${to}...`);
+    // Ensure 'to' number starts with '+' (E.164 format)
+    let formattedTo = to.trim();
+    if (!formattedTo.startsWith('+')) {
+      // If it doesn't start with +, we can't be sure of the country code.
+      // However, for India (+91) we can try to be helpful if it's 10 digits.
+      if (formattedTo.length === 10) {
+        formattedTo = '+91' + formattedTo;
+        console.log(`ℹ️ Prepending +91 to 10-digit number: ${formattedTo}`);
+      } else {
+        console.warn(`⚠️ Phone number "${to}" does not start with "+". Twilio may reject it.`);
+      }
+    }
+
+    console.log(`📱 Attempting to send REAL SMS to ${formattedTo}...`);
     const response = await client.messages.create({
       body: message,
       from: fromPhone,
-      to: to
+      to: formattedTo
     });
 
-    console.log(`✅ REAL SMS OTP sent to ${to}: ${response.sid}`);
+    console.log(`✅ REAL SMS OTP sent to ${formattedTo}: ${response.sid}`);
     return true;
   } catch (error) {
     console.error('Error sending SMS:', error);

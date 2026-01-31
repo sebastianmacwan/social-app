@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       
       if (!sent) {
         return NextResponse.json({ 
-          error: "Failed to process mobile OTP request." 
+          error: "Failed to send mobile OTP. Please ensure your phone number is in international format (e.g., +91XXXXXXXXXX) and is a 'Verified Caller ID' in your Twilio Trial account." 
         }, { status: 500 });
       }
       
