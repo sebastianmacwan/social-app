@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/auth";
 import { supabase } from "@/lib/supabaseClient";
 import { sendOTP } from "@/lib/email";
+import { sendSMSOTP } from "@/lib/sms";
 
 export async function POST(req: Request) {
   try {
@@ -57,8 +58,17 @@ export async function POST(req: Request) {
       if (!user.phone) {
         return NextResponse.json({ error: "Phone number required for this language" }, { status: 400 });
       }
-      console.log(`📱 MOBILE OTP sent to ${user.phone}: ${generatedOTP}`);
-      return NextResponse.json({ message: "OTP sent to mobile number" });
+      
+      const sent = await sendSMSOTP(user.phone, generatedOTP, targetLanguage);
+      console.log(`Mobile OTP attempted to ${user.phone}. Success: ${sent}`);
+      
+      if (!sent) {
+        return NextResponse.json({ 
+          error: "Failed to send mobile OTP. Please check if TWILIO credentials are correctly set in environment variables." 
+        }, { status: 500 });
+      }
+      
+      return NextResponse.json({ message: "OTP sent to mobile number: " + user.phone });
     }
 
   } catch (error) {
