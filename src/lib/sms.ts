@@ -23,16 +23,17 @@ export async function sendSMSOTP(to: string, otp: string, lang: string = 'en') {
       console.log(`Message: ${message}`);
       console.log(`OTP: ${otp}`);
       console.log(`************************************************\n`);
-      return true; // Return true to allow flow to continue without paid SMS
+      return true; 
     }
 
+    console.log(`📱 Attempting to send REAL SMS to ${to}...`);
     const response = await client.messages.create({
       body: message,
       from: fromPhone,
       to: to
     });
 
-    console.log(`📱 SMS OTP sent to ${to}: ${response.sid}`);
+    console.log(`✅ REAL SMS OTP sent to ${to}: ${response.sid}`);
     return true;
   } catch (error) {
     console.error('Error sending SMS:', error);

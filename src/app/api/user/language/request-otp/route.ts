@@ -73,7 +73,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         message: isSimulated 
           ? "SIMULATED OTP: Check server console for code (Free/Development mode)" 
-          : "OTP sent to mobile number: " + user.phone 
+          : "Real OTP sent to your mobile number: " + user.phone 
       });
     }
 
